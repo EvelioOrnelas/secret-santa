@@ -136,6 +136,22 @@
       <input id="phoneInput" type="tel" inputmode="tel" placeholder="Phone (optional)" autocomplete="off">
       <button class="btn" type="submit" style="flex:0 0 auto">Add</button>
     </form>
+    <div class="toolbar" style="margin-top:12px">
+      <button id="contactsBtn" class="btn-ghost btn btn-sm" type="button">📇 Add from contacts</button>
+      <button id="pasteToggle" class="btn-ghost btn btn-sm" type="button">📋 Paste a list</button>
+      <input id="vcfInput" type="file" accept=".vcf,text/vcard,text/x-vcard" multiple hidden>
+    </div>
+    <div id="contactsHelp" class="opt" style="display:none">
+      <h3>Import contacts on iPhone</h3>
+      <p>Your browser can't open your contacts directly. Instead: in the <b>Contacts</b> app, open a person → <b>Share Contact</b> → <b>Save to Files</b> (or select several in a list and share them together). Then tap below and pick the file.</p>
+      <button id="vcfBtn" class="btn btn-sm" type="button">Choose contact file (.vcf)</button>
+    </div>
+    <div id="pasteBox" class="opt" style="display:none">
+      <h3>Paste names and numbers</h3>
+      <p>One person per line, like <b>Ana 555-111-2222</b>. Numbers are optional.</p>
+      <textarea id="pasteText" style="height:110px" placeholder="Ana 555-111-2222&#10;Ben, (555) 333-4444&#10;Cy"></textarea>
+      <button id="pasteAdd" class="btn btn-sm" type="button" style="margin-top:8px">Add these</button>
+    </div>
     <div id="people" class="chips"></div>
     <div id="peopleEmpty" class="empty">No one added yet.</div>
   </section>
@@ -357,15 +373,78 @@ function eventInfo(){
 function codeFor(p){ return encode(Object.assign({g:p.g, r:p.r}, eventInfo())); }
 
 /* ---------- events ---------- */
+function addPerson(name, phone){
+  const v = String(name||"").trim().replace(/\s+/g," ");
+  if(!v) return false;
+  const ph = digits(phone);
+  const existing = state.people.find(p=>p.n.toLowerCase()===v.toLowerCase());
+  if(existing){ if(!existing.ph && ph.length>=7){ existing.ph=ph; return true; } return false; }
+  state.people.push({n:v, ph: ph.length>=7 ? ph : ""});
+  return true;
+}
+function afterBulk(count){
+  state.pairs=null; renderPeople(); renderResults(); save();
+  toast(count ? `Added ${count} ${count===1?"person":"people"}` : "No new people found");
+}
 $("addForm").addEventListener("submit", e=>{
   e.preventDefault();
   const v = $("nameInput").value.trim();
   if(!v) return;
   if(state.people.some(p=>p.n.toLowerCase()===v.toLowerCase())){ toast("Already added"); return; }
-  const ph = digits($("phoneInput").value);
-  if($("phoneInput").value.trim() && ph.length<7){ toast("Check that phone number"); return; }
-  state.people.push({n:v, ph}); state.pairs=null; $("nameInput").value=""; $("phoneInput").value="";
-  renderPeople(); renderResults(); save(); $("nameInput").focus();
+  if($("phoneInput").value.trim() && digits($("phoneInput").value).length<7){ toast("Check that phone number"); return; }
+  addPerson(v, $("phoneInput").value); $("nameInput").value=""; $("phoneInput").value="";
+  state.pairs=null; renderPeople(); renderResults(); save(); $("nameInput").focus();
+});
+
+/* ---------- contacts: native picker, .vcf import, or pasted list ---------- */
+const canPick = "contacts" in navigator && "ContactsManager" in window;
+$("contactsBtn").addEventListener("click", async ()=>{
+  $("pasteBox").style.display="none";
+  if(canPick){
+    try{
+      const list = await navigator.contacts.select(["name","tel"], {multiple:true});
+      let n=0; list.forEach(c=>{ if(addPerson((c.name||[])[0], (c.tel||[])[0])) n++; });
+      afterBulk(n); return;
+    }catch(e){ /* fall through to file import */ }
+  }
+  const box=$("contactsHelp"); box.style.display = box.style.display==="none" ? "block" : "none";
+});
+$("vcfBtn").addEventListener("click", ()=>$("vcfInput").click());
+$("vcfInput").addEventListener("change", async e=>{
+  let n=0;
+  for(const f of e.target.files){ parseVcf(await f.text()).forEach(c=>{ if(addPerson(c.n,c.ph)) n++; }); }
+  e.target.value=""; $("contactsHelp").style.display="none"; afterBulk(n);
+});
+function parseVcf(text){
+  const lines = text.replace(/\r\n[ \t]/g,"").replace(/\n[ \t]/g,"").split(/\r?\n/);
+  const out=[]; let cur=null;
+  for(const line of lines){
+    const i=line.indexOf(":"); if(i<0) continue;
+    const key=line.slice(0,i).toUpperCase(), val=line.slice(i+1).trim();
+    if(key==="BEGIN" && /vcard/i.test(val)) cur={n:"",nParts:"",tels:[]};
+    else if(key==="END" && cur){ const name=cur.n||cur.nParts; if(name) out.push({n:name, ph:(cur.tels.find(t=>t.cell)||cur.tels[0]||{}).v||""}); cur=null; }
+    else if(!cur) continue;
+    else if(key==="FN" || key.startsWith("FN;")) cur.n=unesc(val);
+    else if(key==="N" || key.startsWith("N;")){ const p=val.split(";"); cur.nParts=unesc([p[1],p[0]].filter(Boolean).join(" ")); }
+    else if(/(^|\.)TEL(;|$)/.test(key)) cur.tels.push({v:val.replace(/^tel:/i,""), cell:/CELL|IPHONE|MOBILE/.test(key)});
+  }
+  return out;
+}
+function unesc(s){ return s.replace(/\\,/g,",").replace(/\\;/g,";").replace(/\\n/gi," ").trim(); }
+$("pasteToggle").addEventListener("click", ()=>{
+  $("contactsHelp").style.display="none";
+  const b=$("pasteBox"); b.style.display = b.style.display==="none" ? "block" : "none";
+  if(b.style.display==="block") $("pasteText").focus();
+});
+$("pasteAdd").addEventListener("click", ()=>{
+  let n=0;
+  $("pasteText").value.split(/\n/).forEach(line=>{
+    line=line.trim(); if(!line) return;
+    const m=line.match(/(\+?\(?\d[\d\s().-]{6,})\s*$/);
+    const ph=m?m[1]:""; const name=(m?line.slice(0,m.index):line).replace(/[,;:\t-]+\s*$/,"").trim();
+    if(addPerson(name, ph)) n++;
+  });
+  $("pasteText").value=""; $("pasteBox").style.display="none"; afterBulk(n);
 });
 $("people").addEventListener("click", e=>{
   const i = e.target.dataset.i; if(i===undefined) return;
