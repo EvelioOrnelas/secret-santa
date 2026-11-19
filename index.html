@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secret Santa Draw</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pine:#1f3d2f; --pine-2:#2c5541; --berry:#b3263a; --berry-2:#8f1d2e;
+    --cream:#fbf6ec; --paper:#fffdf8; --ink:#1d1d1b; --muted:#6b6a64; --line:#e7dfcf; --gold:#c9a24a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:Inter,system-ui,sans-serif;color:var(--ink);background:var(--cream);
+    background-image:radial-gradient(circle at 15% 10%,rgba(179,38,58,.07),transparent 40%),radial-gradient(circle at 85% 0%,rgba(31,61,47,.08),transparent 45%);
+    min-height:100vh;line-height:1.45}
+  .wrap{max-width:640px;margin:0 auto;padding:28px 18px 60px}
+  header{text-align:center;margin-bottom:22px}
+  .badge{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--berry);font-weight:600}
+  h1{font-family:Fraunces,serif;font-weight:700;font-size:clamp(30px,7vw,42px);margin:6px 0 6px;color:var(--pine);line-height:1.05}
+  header p{margin:0;color:var(--muted)}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  .card h2{font-family:Fraunces,serif;font-size:20px;margin:0 0 4px;color:var(--pine)}
+  .card .hint{color:var(--muted);font-size:14px;margin:0 0 14px}
+  .step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--pine);color:#fff;font-size:13px;font-weight:600;margin-right:8px;vertical-align:2px}
+  label{display:block;font-size:13px;font-weight:600;margin:0 0 6px;color:#3a3a36}
+  input,select,textarea{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:2px solid rgba(31,61,47,.35);outline-offset:1px;border-color:var(--pine-2)}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1;min-width:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field{margin-bottom:12px}
+  button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:11px 16px;cursor:pointer;font-size:15px}
+  .btn{background:var(--pine);color:#fff}
+  .btn:hover{background:var(--pine-2)}
+  .btn-berry{background:var(--berry);color:#fff}
+  .btn-berry:hover{background:var(--berry-2)}
+  .btn-ghost{background:transparent;color:var(--pine);border:1px solid var(--line)}
+  .btn-ghost:hover{background:#f4efe3}
+  .btn-sm{padding:7px 11px;font-size:13px}
+  .btn-block{width:100%;padding:14px;font-size:16px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:#f2ecdf;border-radius:999px;padding:6px 6px 6px 12px;font-size:14px}
+  .chip button{background:transparent;color:var(--muted);padding:2px 7px;border-radius:50%;font-size:16px;line-height:1}
+  .chip button:hover{background:#e5dccb;color:var(--berry)}
+  .empty{color:var(--muted);font-size:14px;font-style:italic;margin-top:10px}
+  .err{background:#fbe9ea;color:var(--berry-2);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:12px;display:none}
+  .ok{background:#e8f1eb;color:var(--pine);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:12px}
+  .result{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+  .result:first-of-type{border-top:0}
+  .result .who{flex:1;min-width:0}
+  .result .name{font-weight:600}
+  .result .match{font-size:13px;color:var(--muted)}
+  .result .actions{display:flex;gap:6px;flex-shrink:0}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+  .copybox{display:none;margin-top:10px}
+  .copybox textarea{font-size:13px;height:90px}
+  .footer-note{font-size:13px;color:var(--muted);text-align:center;margin-top:20px}
+  .opt{border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0 4px;background:#fffaf0}
+  .opt h3{margin:0 0 4px;font-size:15px;color:var(--pine)}
+  .opt p{margin:0 0 10px;font-size:14px;color:var(--muted)}
+  .warn{font-size:13px;color:var(--berry-2);margin-top:8px}
+  a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-weight:600;border-radius:10px}
+  .phone{font-size:12px;color:var(--muted)}
+  .names{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:8px 0 18px}
+  .names button{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);padding:12px 18px;font-size:16px}
+  .names button:hover{background:rgba(255,255,255,.2)}
+  #stagePick input{background:rgba(255,255,255,.95);text-align:center;font-size:18px;max-width:260px}
+  .linkish{background:none;color:#fff;opacity:.7;font-weight:500;text-decoration:underline;font-size:14px;margin-top:14px}
+  .rv-err{color:#ffd0d6;font-size:14px;min-height:20px;margin:8px 0}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* Reveal view */
+  #reveal{display:none;min-height:100vh;place-items:center;padding:24px 18px;text-align:center;
+    background:var(--pine);background-image:radial-gradient(circle at 50% 0%,#2f5d47,transparent 60%);color:#fff}
+  #reveal .inner{max-width:420px;margin:0 auto;position:relative;z-index:1}
+  #reveal .hello{font-family:Fraunces,serif;font-size:28px;margin:0 0 4px}
+  #reveal .sub{opacity:.8;margin:0 0 28px}
+  .gift{width:220px;height:200px;margin:0 auto 26px;position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .gift .box{position:absolute;bottom:0;left:15px;width:190px;height:130px;background:var(--berry);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,.3)}
+  .gift .lid{position:absolute;top:44px;left:5px;width:210px;height:38px;background:#c53045;border-radius:8px;transition:transform .7s cubic-bezier(.3,1.6,.5,1);transform-origin:20% 100%;z-index:2}
+  .gift .rv{position:absolute;left:50%;transform:translateX(-50%);width:28px;background:var(--gold)}
+  .gift .box .rv{top:0;height:100%}
+  .gift .lid .rv{top:0;height:100%}
+  .gift .bow{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:80px;height:40px;z-index:3;transition:transform .7s cubic-bezier(.3,1.6,.5,1)}
+  .gift .bow:before,.gift .bow:after{content:"";position:absolute;top:0;width:38px;height:36px;border:9px solid var(--gold);border-radius:50% 50% 50% 0}
+  .gift .bow:before{left:0;transform:rotate(-20deg)}
+  .gift .bow:after{right:0;transform:scaleX(-1) rotate(-20deg)}
+  .gift.open .lid{transform:translate(-30px,-60px) rotate(-28deg)}
+  .gift.open .bow{transform:translate(-90%,-75px) rotate(-28deg)}
+  .gift:not(.open){animation:wiggle 2.4s ease-in-out infinite}
+  @keyframes wiggle{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-3deg)}90%{transform:rotate(3deg)}95%{transform:rotate(-2deg)}}
+  .tap{font-size:14px;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+  .answer{display:none;animation:rise .6s ease both}
+  .answer .label{opacity:.8;margin:0}
+  .answer .who{font-family:Fraunces,serif;font-size:clamp(40px,12vw,58px);font-weight:700;margin:4px 0 18px;color:#fff;line-height:1.05}
+  .details{display:inline-block;text-align:left;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px 18px;font-size:15px}
+  .details div{margin:3px 0}
+  .details b{color:var(--gold);font-weight:600}
+  .secret{margin-top:22px;font-size:13px;opacity:.7}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .snow{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+  .snow i{position:absolute;top:-10px;width:6px;height:6px;border-radius:50%;background:#fff;opacity:.7;animation:fall linear infinite}
+  @keyframes fall{to{transform:translateY(110vh)}}
+  @media (max-width:420px){.grid2{grid-template-columns:1fr}.result{flex-wrap:wrap}.result .actions{width:100%}.result .actions button{flex:1}}
+</style>
+</head>
+<body>
+
+<div id="organizer" class="wrap">
+  <header>
+    <span class="badge">🎁 Gift exchange</span>
+    <h1>Secret Santa Draw</h1>
+    <p>Add everyone, draw names, then send each person their private link.</p>
+  </header>
+
+  <section class="card">
+    <h2><span class="step">1</span>The exchange</h2>
+    <p class="hint">Shown to everyone when they open their link.</p>
+    <div class="field"><label for="evName">Name</label><input id="evName" placeholder="Family Christmas 2026"></div>
+    <div class="grid2">
+      <div class="field"><label for="evBudget">Spending limit</label><input id="evBudget" placeholder="$30"></div>
+      <div class="field"><label for="evDate">Exchange date</label><input id="evDate" placeholder="Dec 24"></div>
+    </div>
+    <div class="field" style="margin-bottom:0"><label for="evNote">Note (optional)</label><input id="evNote" placeholder="Wrap it! No gift cards."></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">2</span>Who's in</h2>
+    <p class="hint">At least 3 people. Phone numbers let you text links in one tap and lock each person's reveal.</p>
+    <form id="addForm" class="row">
+      <input id="nameInput" placeholder="Name" autocomplete="off">
+      <input id="phoneInput" type="tel" inputmode="tel" placeholder="Phone (optional)" autocomplete="off">
+      <button class="btn" type="submit" style="flex:0 0 auto">Add</button>
+    </form>
+    <div id="people" class="chips"></div>
+    <div id="peopleEmpty" class="empty">No one added yet.</div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">3</span>Can't draw each other <span style="font-weight:500;font-size:15px;color:var(--muted)">(optional)</span></h2>
+    <p class="hint">Couples or housemates who shouldn't get each other.</p>
+    <div class="row">
+      <select id="exA"></select>
+      <select id="exB"></select>
+      <button id="addEx" class="btn-ghost btn" type="button" style="flex:0 0 auto">Add</button>
+    </div>
+    <div id="exclusions" class="chips"></div>
+  </section>
+
+  <button id="drawBtn" class="btn-berry btn btn-block">Draw names</button>
+  <div id="drawErr" class="err"></div>
+
+  <section id="results" class="card" style="display:none;margin-top:16px">
+    <h2>Send it out</h2>
+    <div class="opt">
+      <h3>⚡ Easiest: one link for the group chat</h3>
+      <p>Post one message. Each person taps their name and types their phone number to see only their own match.</p>
+      <button id="groupBtn" class="btn-berry btn btn-sm" type="button">Copy group message</button>
+      <div id="groupWarn" class="warn"></div>
+    </div>
+    <div class="opt" style="background:transparent">
+      <h3>Or send individually</h3>
+      <p>Tap <b>Text</b> to open your messages app with their link ready to send.</p>
+    </div>
+    <div class="toolbar">
+      <button id="peekBtn" class="btn-ghost btn btn-sm" type="button">Show matches</button>
+      <button id="redrawBtn" class="btn-ghost btn btn-sm" type="button">Redraw</button>
+    </div>
+    <div id="resultList"></div>
+    <div id="copyBox" class="copybox">
+      <label>Copy this:</label>
+      <textarea id="copyText" readonly></textarea>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Got a code?</h2>
+    <p class="hint">If a link didn't open, paste the code from the end of it.</p>
+    <form id="codeForm" class="row">
+      <input id="codeInput" placeholder="ss-… or sg-…" autocomplete="off">
+      <button class="btn" type="submit" style="flex:0 0 auto">Reveal</button>
+    </form>
+    <div id="codeErr" class="err"></div>
+  </section>
+
+  <p class="footer-note">Nothing is stored online — each person's match lives inside their own link.</p>
+</div>
+
+<div id="reveal">
+  <div class="snow" id="snow"></div>
+  <div class="inner">
+    <p class="hello" id="rvHello"></p>
+    <p class="sub" id="rvEvent"></p>
+    <div id="stagePick" style="display:none">
+      <p style="margin:0 0 6px;opacity:.85">Who are you?</p>
+      <div class="names" id="nameBtns"></div>
+      <form id="unlockForm" style="display:none">
+        <p id="unlockLabel" style="margin:0 0 10px"></p>
+        <input id="unlockPhone" type="tel" inputmode="tel" placeholder="Your phone number" autocomplete="tel">
+        <div class="rv-err" id="unlockErr"></div>
+        <button class="btn-berry btn" type="submit" style="min-width:160px">Unlock</button><br>
+        <button class="linkish" type="button" id="notMe">Not you? Pick again</button>
+      </form>
+    </div>
+    <div id="stageGift">
+    <div class="gift" id="gift" role="button" tabindex="0" aria-label="Open your gift">
+      <div class="bow"></div>
+      <div class="lid"><div class="rv"></div></div>
+      <div class="box"><div class="rv"></div></div>
+    </div>
+    <p class="tap" id="tapHint">Tap the gift to see who you're buying for</p>
+    <div class="answer" id="answer">
+      <p class="label">You're Secret Santa for</p>
+      <p class="who" id="rvWho"></p>
+      <div class="details" id="rvDetails"></div>
+      <p class="secret">🤫 Keep it secret!</p>
+    </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE_URL = "https://evelioornelas.github.io/secret-santa/";
+const KEY = "jingle-bells-2026";
+const STORE = "secret-santa-organizer-v1";
+
+const $ = id => document.getElementById(id);
+let state = { people: [], exclusions: [], pairs: null, peek: false };
+
+/* ---------- encode / decode reveal codes (hex, letters+digits only) ---------- */
+function encode(obj){
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  let hex = "";
+  bytes.forEach((b,i)=>{ hex += (b ^ KEY.charCodeAt(i % KEY.length)).toString(16).padStart(2,"0"); });
+  return "ss-" + hex;
+}
+function decode(code){
+  code = (code||"").trim();
+  const m = code.match(/s[sg]-([0-9a-f]+)/i);
+  if(!m || m[1].length % 2) return null;
+  const hex = m[1];
+  const bytes = new Uint8Array(hex.length/2);
+  for(let i=0;i<bytes.length;i++) bytes[i] = parseInt(hex.substr(i*2,2),16) ^ KEY.charCodeAt(i % KEY.length);
+  try { return JSON.parse(new TextDecoder().decode(bytes)); } catch(e){ return null; }
+}
+function linkFor(code){
+  let base = BASE_URL.startsWith("http") ? BASE_URL : location.href.split("#")[0];
+  return base + "#" + code;
+}
+
+/* ---------- persistence (this browser only) ---------- */
+function save(){
+  try{
+    localStorage.setItem(STORE, JSON.stringify({
+      ev:{n:$("evName").value,b:$("evBudget").value,d:$("evDate").value,t:$("evNote").value},
+      people:state.people, exclusions:state.exclusions, pairs:state.pairs
+    }));
+  }catch(e){}
+}
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(STORE)||"null");
+    if(!s) return;
+    $("evName").value=s.ev?.n||""; $("evBudget").value=s.ev?.b||""; $("evDate").value=s.ev?.d||""; $("evNote").value=s.ev?.t||"";
+    state.people=(s.people||[]).map(p=>typeof p==="string"?{n:p,ph:""}:p); state.exclusions=s.exclusions||[]; state.pairs=s.pairs||null;
+  }catch(e){}
+}
+
+/* ---------- render ---------- */
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function renderPeople(){
+  $("people").innerHTML = state.people.map((p,i)=>`<span class="chip">${esc(p.n)}${p.ph?` <span class="phone">📱${esc(fmtPhone(p.ph))}</span>`:""}<button aria-label="Remove ${esc(p.n)}" data-i="${i}">×</button></span>`).join("");
+  $("peopleEmpty").style.display = state.people.length ? "none" : "block";
+  const opts = state.people.map(p=>`<option>${esc(p.n)}</option>`).join("");
+  $("exA").innerHTML = `<option value="">Person</option>` + opts;
+  $("exB").innerHTML = `<option value="">Person</option>` + opts;
+  renderExclusions();
+}
+function renderExclusions(){
+  $("exclusions").innerHTML = state.exclusions.map((x,i)=>`<span class="chip">${esc(x[0])} ⇄ ${esc(x[1])}<button aria-label="Remove" data-i="${i}">×</button></span>`).join("");
+}
+function renderResults(){
+  if(!state.pairs){ $("results").style.display="none"; return; }
+  $("results").style.display="block";
+  $("peekBtn").textContent = state.peek ? "Hide matches" : "Show matches";
+  const missing = state.people.filter(p=>!p.ph).map(p=>p.n);
+  $("groupWarn").textContent = missing.length ? `No phone for ${missing.join(", ")} — they can open their match without a number, so anyone could peek at theirs.` : "";
+  $("resultList").innerHTML = state.pairs.map((p,i)=>{
+    const ph = phoneOf(p.g);
+    return `<div class="result">
+      <div class="who"><div class="name">${esc(p.g)}</div>
+        <div class="match">${state.peek ? "→ buying for " + esc(p.r) : (ph ? esc(fmtPhone(ph)) : "No phone")}</div></div>
+      <div class="actions">
+        ${ph ? `<a class="btn btn-sm" style="padding:7px 14px;font-size:13px" href="${smsHref(ph, messageFor(p))}">Text</a>` : ""}
+        <button class="${ph?"btn-ghost ":""}btn btn-sm" data-act="msg" data-i="${i}">Copy message</button>
+      </div>
+    </div>`;}).join("");
+}
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1800);
+}
+async function copy(text, label){
+  try{ await navigator.clipboard.writeText(text); toast(label + " copied"); $("copyBox").style.display="none"; }
+  catch(e){ $("copyBox").style.display="block"; $("copyText").value=text; $("copyText").focus(); $("copyText").select(); }
+}
+
+/* ---------- draw ---------- */
+function digits(s){ return String(s||"").replace(/\D/g,"").slice(-10); }
+function fmtPhone(d){ d=digits(d); return d.length===10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : d; }
+function phoneOf(name){ const p=state.people.find(x=>x.n===name); return p ? p.ph : ""; }
+function smsHref(ph, body){ return "sms:" + (digits(ph).length===10 ? "+1" : "") + digits(ph) + "?&body=" + encodeURIComponent(body); }
+function messageFor(p){
+  const ev=eventInfo(); const link=linkFor(codeFor(p));
+  return `🎅 Hi ${p.g}! Your Secret Santa match${ev.e?` for ${ev.e}`:""} is ready. Open your private link to see who you're buying for:\n${link}\n\n(Only open your own link!)`;
+}
+
+/* ---------- group link: each match locked with that person's phone ---------- */
+function seedHash(str){ let h=2166136261>>>0; for(const c of str){ h^=c.codePointAt(0); h=Math.imul(h,16777619)>>>0; } return h||1; }
+function keystream(seed,n){ let x=seedHash(seed); const out=new Uint8Array(n); for(let i=0;i<n;i++){ x^=x<<13; x>>>=0; x^=x>>>17; x^=x<<5; x>>>=0; out[i]=x&255; } return out; }
+function lock(text, secret){ const b=new TextEncoder().encode(text); const k=keystream(secret,b.length); return Array.from(b,(v,i)=>(v^k[i]).toString(16).padStart(2,"0")).join(""); }
+function unlock(hex, secret){
+  const b=new Uint8Array(hex.length/2); for(let i=0;i<b.length;i++) b[i]=parseInt(hex.substr(i*2,2),16);
+  const k=keystream(secret,b.length); const t=new TextDecoder().decode(b.map((v,i)=>v^k[i]));
+  try{ const o=JSON.parse(t); return o.ok===1 ? o.r : null; }catch(e){ return null; }
+}
+function groupCode(){
+  const ev=eventInfo();
+  const p=state.pairs.map(x=>{ const ph=digits(phoneOf(x.g)); return [x.g, ph?1:0, lock(JSON.stringify({ok:1,r:x.r}), "santa|"+x.g+"|"+ph)]; });
+  return encode(Object.assign({grp:1,p}, ev)).replace(/^ss-/,"sg-");
+}
+
+function blocked(a,b){ return state.exclusions.some(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a)); }
+function draw(){
+  const ppl = state.people.map(p=>p.n);
+  if(ppl.length < 3) return "Add at least 3 people.";
+  for(let attempt=0; attempt<5000; attempt++){
+    const r = ppl.slice();
+    for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
+    if(ppl.every((g,i)=>g!==r[i] && !blocked(g,r[i]))){
+      state.pairs = ppl.map((g,i)=>({g, r:r[i]}));
+      return null;
+    }
+  }
+  return "Couldn't find a fair draw with those restrictions — try removing one.";
+}
+function eventInfo(){
+  return { e:$("evName").value.trim(), b:$("evBudget").value.trim(), d:$("evDate").value.trim(), t:$("evNote").value.trim() };
+}
+function codeFor(p){ return encode(Object.assign({g:p.g, r:p.r}, eventInfo())); }
+
+/* ---------- events ---------- */
+$("addForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const v = $("nameInput").value.trim();
+  if(!v) return;
+  if(state.people.some(p=>p.n.toLowerCase()===v.toLowerCase())){ toast("Already added"); return; }
+  const ph = digits($("phoneInput").value);
+  if($("phoneInput").value.trim() && ph.length<7){ toast("Check that phone number"); return; }
+  state.people.push({n:v, ph}); state.pairs=null; $("nameInput").value=""; $("phoneInput").value="";
+  renderPeople(); renderResults(); save(); $("nameInput").focus();
+});
+$("people").addEventListener("click", e=>{
+  const i = e.target.dataset.i; if(i===undefined) return;
+  const name = state.people[i].n;
+  state.people.splice(i,1);
+  state.exclusions = state.exclusions.filter(x=>x[0]!==name && x[1]!==name);
+  state.pairs=null; renderPeople(); renderResults(); save();
+});
+$("addEx").addEventListener("click", ()=>{
+  const a=$("exA").value, b=$("exB").value;
+  if(!a||!b||a===b){ toast("Pick two different people"); return; }
+  if(blocked(a,b)) return;
+  state.exclusions.push([a,b]); state.pairs=null; renderExclusions(); renderResults(); save();
+});
+$("exclusions").addEventListener("click", e=>{
+  const i=e.target.dataset.i; if(i===undefined) return;
+  state.exclusions.splice(i,1); state.pairs=null; renderExclusions(); renderResults(); save();
+});
+function doDraw(){
+  const err = draw();
+  $("drawErr").style.display = err ? "block" : "none";
+  $("drawErr").textContent = err || "";
+  state.peek=false; renderResults(); save();
+  if(!err){ $("results").scrollIntoView({behavior:"smooth",block:"start"}); toast("Names drawn!"); }
+}
+$("drawBtn").addEventListener("click", doDraw);
+$("redrawBtn").addEventListener("click", doDraw);
+$("peekBtn").addEventListener("click", ()=>{ state.peek=!state.peek; renderResults(); });
+$("resultList").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  const p = state.pairs[b.dataset.i];
+  copy(messageFor(p), "Message");
+});
+$("groupBtn").addEventListener("click", ()=>{
+  const ev=eventInfo();
+  copy(`🎅 Secret Santa${ev.e?` — ${ev.e}`:""}! Names are drawn.${ev.b?` Spending limit: ${ev.b}.`:""}${ev.d?` Exchange: ${ev.d}.`:""}\n\nTap the link, pick your name, and enter your phone number to see who you're buying for:\n${linkFor(groupCode())}`, "Group message");
+});
+["evName","evBudget","evDate","evNote"].forEach(id=>$(id).addEventListener("input", save));
+$("codeForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const data = decode($("codeInput").value);
+  if(data && data.grp && data.p){ showGroup(data); return; }
+  if(!data || !data.r){ $("codeErr").style.display="block"; $("codeErr").textContent="That code doesn't look right."; return; }
+  $("codeErr").style.display="none"; showReveal(data);
+});
+
+/* ---------- reveal ---------- */
+function startSnow(){
+  const snow=$("snow"); if(snow.childElementCount) return;
+  for(let i=0;i<40;i++){
+    const f=document.createElement("i");
+    const s=2+Math.random()*5;
+    f.style.cssText=`left:${Math.random()*100}%;width:${s}px;height:${s}px;animation-duration:${6+Math.random()*8}s;animation-delay:${-Math.random()*10}s;opacity:${.3+Math.random()*.6}`;
+    snow.appendChild(f);
+  }
+}
+let group=null, picked=null;
+function showGroup(g){
+  group=g;
+  $("organizer").style.display="none"; $("reveal").style.display="grid";
+  $("stageGift").style.display="none"; $("stagePick").style.display="block";
+  $("rvHello").textContent = g.e || "Secret Santa";
+  $("rvEvent").textContent = [g.b&&("Spend "+g.b), g.d&&("Exchange "+g.d)].filter(Boolean).join(" · ") || "Find out who you're buying for";
+  $("nameBtns").innerHTML = g.p.map((x,i)=>`<button type="button" data-i="${i}">${esc(x[0])}</button>`).join("");
+  $("nameBtns").style.display="flex"; $("unlockForm").style.display="none";
+  startSnow(); window.scrollTo(0,0);
+}
+$("nameBtns").addEventListener("click", e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  picked = group.p[b.dataset.i];
+  if(!picked[1]){ tryUnlock(""); return; }
+  $("nameBtns").style.display="none"; $("unlockForm").style.display="block";
+  $("unlockLabel").textContent = `Hi ${picked[0]}! Enter your phone number to unlock.`;
+  $("unlockErr").textContent=""; $("unlockPhone").value=""; $("unlockPhone").focus();
+});
+$("notMe").addEventListener("click", ()=>showGroup(group));
+$("unlockForm").addEventListener("submit", e=>{ e.preventDefault(); tryUnlock(digits($("unlockPhone").value)); });
+function tryUnlock(ph){
+  const r = unlock(picked[2], "santa|"+picked[0]+"|"+ph);
+  if(!r){ $("unlockErr").textContent="That number doesn't match. Try again (no country code needed)."; return; }
+  showReveal({g:picked[0], r, e:group.e, b:group.b, d:group.d, t:group.t});
+}
+function showReveal(d){
+  $("organizer").style.display="none";
+  $("reveal").style.display="grid";
+  $("stagePick").style.display="none"; $("stageGift").style.display="block";
+  $("gift").classList.remove("open"); $("answer").style.display="none"; $("tapHint").style.display="block";
+  $("rvHello").textContent = "Hi " + d.g + "!";
+  $("rvEvent").textContent = d.e || "Secret Santa";
+  $("rvWho").textContent = d.r;
+  const rows = [];
+  if(d.b) rows.push(`<div><b>Spend:</b> ${esc(d.b)}</div>`);
+  if(d.d) rows.push(`<div><b>Exchange:</b> ${esc(d.d)}</div>`);
+  if(d.t) rows.push(`<div><b>Note:</b> ${esc(d.t)}</div>`);
+  $("rvDetails").innerHTML = rows.join("");
+  $("rvDetails").style.display = rows.length ? "inline-block" : "none";
+  startSnow(); window.scrollTo(0,0);
+}
+function openGift(){
+  $("gift").classList.add("open");
+  $("tapHint").style.display="none";
+  setTimeout(()=>{ $("answer").style.display="block"; }, 350);
+}
+$("gift").addEventListener("click", openGift);
+$("gift").addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openGift(); } });
+
+function route(){
+  const d = location.hash.length > 4 ? decode(location.hash.slice(1)) : null;
+  if(d && d.grp && d.p) showGroup(d);
+  else if(d && d.g && d.r) showReveal(d);
+}
+
+load(); renderPeople(); renderResults(); route();
+window.addEventListener("hashchange", route);
+</script>
+</body>
+</html>
